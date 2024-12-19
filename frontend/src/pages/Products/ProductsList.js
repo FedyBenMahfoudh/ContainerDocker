@@ -10,7 +10,7 @@ import { getProductList } from "../../services";
 import { toast } from "react-toastify";
 
 export const ProductsList = () => {
-  const { products, initialProductList } = useFilter();
+  const { products, initializeProductList } = useFilter();
   const [show, setShow] = useState(false);
   const search = useLocation().search;
   const searchTerm = new URLSearchParams(search).get("q");
@@ -20,13 +20,16 @@ export const ProductsList = () => {
     async function fetchProducts() {
       try {
         const data = await getProductList(searchTerm); // Adjusted to fetch with DummyJSON API
-        initialProductList(data); // Assuming `data` is the array of products
+        initializeProductList(data); // Assuming `data` is the array of products
       } catch (error) {
-        toast.error(error.message, { closeButton: true, position: "bottom-center" });
+        toast.error(error.message, {
+          closeButton: true,
+          position: "bottom-center",
+        });
       }
     }
     fetchProducts();
-  }, [searchTerm, initialProductList]); //eslint-disable-line
+  }, [searchTerm, initializeProductList]); //eslint-disable-line
 
   return (
     <main>

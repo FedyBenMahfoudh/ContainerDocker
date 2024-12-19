@@ -49,7 +49,10 @@ export const FilterBar = ({ setShow }) => {
               <div className="flex items-center my-1">
                 <input
                   onChange={() =>
-                    dispatch({ type: "SORT_BY", payload: { sortBy: "lowtohigh" } })
+                    dispatch({
+                      type: "SORT_BY",
+                      payload: { sortBy: "lowtohigh" },
+                    })
                   }
                   checked={state.sortBy === "lowtohigh" || false}
                   id="price-sort-1"
@@ -68,7 +71,10 @@ export const FilterBar = ({ setShow }) => {
               <div className="flex items-center my-1">
                 <input
                   onChange={() =>
-                    dispatch({ type: "SORT_BY", payload: { sortBy: "hightolow" } })
+                    dispatch({
+                      type: "SORT_BY",
+                      payload: { sortBy: "hightolow" },
+                    })
                   }
                   checked={state.sortBy === "hightolow" || false}
                   id="price-sort-2"
@@ -87,7 +93,10 @@ export const FilterBar = ({ setShow }) => {
               <div className="flex items-center my-1">
                 <input
                   onChange={() =>
-                    dispatch({ type: "SORT_BY", payload: { sortBy: "discount" } })
+                    dispatch({
+                      type: "SORT_BY",
+                      payload: { sortBy: "discount" },
+                    })
                   }
                   checked={state.sortBy === "discount" || false}
                   id="discount-sort"
@@ -109,7 +118,10 @@ export const FilterBar = ({ setShow }) => {
               <div className="flex items-center my-1">
                 <input
                   onChange={() =>
-                    dispatch({ type: "RATINGS", payload: { ratings: "4STARSABOVE" } })
+                    dispatch({
+                      type: "RATINGS",
+                      payload: { ratings: "4STARSABOVE" },
+                    })
                   }
                   checked={state.ratings === "4STARSABOVE" || false}
                   id="rating-sort-1"
@@ -128,7 +140,10 @@ export const FilterBar = ({ setShow }) => {
               <div className="flex items-center my-1">
                 <input
                   onChange={() =>
-                    dispatch({ type: "RATINGS", payload: { ratings: "3STARSABOVE" } })
+                    dispatch({
+                      type: "RATINGS",
+                      payload: { ratings: "3STARSABOVE" },
+                    })
                   }
                   checked={state.ratings === "3STARSABOVE" || false}
                   id="rating-sort-2"
@@ -147,7 +162,10 @@ export const FilterBar = ({ setShow }) => {
               <div className="flex items-center my-1">
                 <input
                   onChange={() =>
-                    dispatch({ type: "RATINGS", payload: { ratings: "2STARSABOVE" } })
+                    dispatch({
+                      type: "RATINGS",
+                      payload: { ratings: "2STARSABOVE" },
+                    })
                   }
                   checked={state.ratings === "2STARSABOVE" || false}
                   id="rating-sort-3"
@@ -166,7 +184,10 @@ export const FilterBar = ({ setShow }) => {
               <div className="flex items-center my-1">
                 <input
                   onChange={() =>
-                    dispatch({ type: "RATINGS", payload: { ratings: "1STARSABOVE" } })
+                    dispatch({
+                      type: "RATINGS",
+                      payload: { ratings: "1STARSABOVE" },
+                    })
                   }
                   checked={state.ratings === "1STARSABOVE" || false}
                   id="rating-sort-4"
@@ -184,28 +205,6 @@ export const FilterBar = ({ setShow }) => {
               </div>
             </li>
             <li className="mt-1 mb-5">
-              <span className="font-semibold">Other Filters</span>
-              <div className="flex items-center my-1">
-                <input
-                  onChange={() =>
-                    dispatch({
-                      type: "LOW_STOCK_ONLY",
-                      payload: { lowStockOnly: !state.lowStockOnly },
-                    })
-                  }
-                  checked={state.lowStockOnly || false}
-                  id="low-stock"
-                  type="checkbox"
-                  value=""
-                  className="w-4 h-4 text-blue-600 bg-gray-100 rounded border-gray-300 dark:bg-gray-700 dark:border-gray-600"
-                />
-                <label
-                  htmlFor="low-stock"
-                  className="ml-2 text-sm font-medium text-gray-900 dark:text-gray-300"
-                >
-                  Low Stock Only
-                </label>
-              </div>
               <div className="flex items-center my-1">
                 <input
                   onChange={() =>

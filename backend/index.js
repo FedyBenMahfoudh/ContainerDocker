@@ -1,75 +1,160 @@
 const express = require("express");
 const cors = require("cors");
-const axios = require("axios");
+
+const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
-const fs = require("fs");
-const path = require("path");
-const jsonServer = require("json-server");
-const auth = require("json-server-auth");
-
+const bodyParser = require("body-parser");
+const mongoose = require("mongoose");
 const app = express();
+const axios = require("axios");
+const dotenv = require("dotenv");
+
+dotenv.config();
+app.use(bodyParser.json());
 app.use(cors());
-app.use(express.json());
 
-const JSON_SERVER_URL = "http://localhost:3001"; // json-server is running on port 3001
-const SECRET_KEY = "your_secret_key"; // Store this key securely
-const DB_FILE = path.join(__dirname, "data", "db.json");
+// OR restrict to your frontend's origin
+app.use(
+  cors({
+    origin: "http://localhost:3000",
+  })
+);
+const connectDB = async () => {
+  try {
+    const conn = await mongoose.connect(process.env.MONGODB_URI);
+    console.log(`MongoDB connected : ${conn.connection.host}`);
+  } catch (error) {
+    console.log("MongoDB error connection :" + error);
+  }
+};
 
-// ---------------- JSON Server Configuration ---------------- //
-const jsonApp = jsonServer.create();
-const jsonRouter = jsonServer.router(DB_FILE);
-const jsonMiddlewares = jsonServer.defaults();
-
-jsonApp.db = jsonRouter.db; // Bind `json-server-auth` to the router
-jsonApp.use(jsonMiddlewares);
-jsonApp.use(auth);
-jsonApp.use(jsonRouter);
-
-// Start `json-server` on a different port (3001)
-jsonApp.listen(3001, () => {
-  console.log(`JSON Server with auth is running on port 3001`);
+const userSchema = new mongoose.Schema({
+  fullName: { type: String, required: true },
+  email: { type: String, required: true, unique: true },
+  password: { type: String, required: true },
 });
 
-// ---------------- Helper Functions ---------------- //
-function getUsers() {
-  const data = fs.readFileSync(DB_FILE, "utf-8");
-  return JSON.parse(data).users || [];
-}
+const User = mongoose.model("User", userSchema);
 
-function saveUsers(users) {
-  const data = fs.readFileSync(DB_FILE, "utf-8");
-  const db = JSON.parse(data);
-  db.users = users;
-  fs.writeFileSync(DB_FILE, JSON.stringify(db, null, 2));
-}
+// Secret key for JWT
+const secretKey = "security_key";
 
-function verifyToken(req, res, next) {
-  const token = req.header("Authorization")?.split(" ")[1];
-  if (!token) {
-    return res.status(403).json({ error: "Access denied. No token provided." });
-  }
-
+// Function to generate JWT
+const generateToken = (userId, res) => {
+  const token = jwt.sign({ userId }, process.env.JWT_SECRET || secretKey, {
+    expiresIn: "7d",
+  });
+  return token;
+};
+// Register route
+app.post("/register", async (req, res) => {
+  const { fullName, email, password } = req.body;
   try {
-    const decoded = jwt.verify(token, SECRET_KEY);
-    req.user = decoded;
-    next();
+    if (!email || !fullName || !password) {
+      return res.status(400).json({ message: "All the fields are required" });
+    }
+
+    if (password.length < 6) {
+      return res
+        .status(400)
+        .json({ message: "Password must be at least 6 characters" });
+    }
+
+    const user = await User.findOne({ email });
+
+    if (user) return res.status(400).json({ message: "Email Already Exists" });
+
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(password, salt);
+
+    const newUser = new User({
+      fullName,
+      email,
+      password: hashedPassword,
+    });
+
+    if (newUser) {
+      //generate jwt
+      const token = generateToken(newUser._id, res);
+      await newUser.save();
+      res.status(201).json({
+        _id: newUser._id,
+        fullName: newUser.fullName,
+        email: newUser.email,
+        token,
+      });
+    } else {
+      return res.status(400).json({ message: "Invalid user data" });
+    }
   } catch (error) {
-    res.status(400).json({ error: "Invalid token." });
+    console.error("Signup controller Error:", {
+      message: error.message,
+      stack: error.stack,
+    });
+    res.status(500).json({ message: "Internal Server Error" });
   }
-}
+});
+
+// Login route
+app.post("/login", async (req, res) => {
+  const { email, password } = req.body;
+  try {
+    const user = await User.findOne({ email });
+
+    if (!user) {
+      return res.status(400).json({ message: "Invalid Credentials" });
+    }
+    const isPasswordCorrect = await bcrypt.compare(password, user.password);
+
+    if (!isPasswordCorrect) {
+      return res.status(400).json({ message: "Invalid Credentials" });
+    }
+
+    const token = generateToken(user._id, res);
+    res.status(200).json({
+      _id: user._id,
+      fullName: user.fullName,
+      email: user.email,
+      token,
+    });
+  } catch (error) {
+    console.error("login controller Error:", {
+      message: error.message,
+      stack: error.stack,
+    });
+    res.status(500).json({ message: "Internal Server Error" });
+  }
+});
+
+app.post("/logout", (req, res) => {
+  try {
+    res.cookie("token", "", { maxAge: 0 });
+    sessionStorage.setItem("token", "");
+    res.status(200).json({ message: "Logged out successfully" });
+  } catch (error) {
+    console.error("logout controller Error:", {
+      message: error.message,
+      stack: error.stack,
+    });
+    res.status(500).json({ message: "Internal Server Error" });
+  }
+});
 
 // ---------------- Express Server Routes ---------------- //
+const JSON_SERVER_URL = "https://dummyjson.com"; // Or the URL of your JSON server
+
 app.get("/products", async (req, res) => {
   const { search } = req.query;
   let url = `${JSON_SERVER_URL}/products`;
 
   if (search) {
-    url += `?q=${encodeURIComponent(search)}`;
+    url += `/search?q=${decodeURIComponent(search)}`; // Fix query parameter
   }
 
   try {
     const response = await axios.get(url);
-    res.json(response.data);
+    console.log(response.data);
+    res.json(response.data); // Directly send the data
   } catch (error) {
     console.error("Error fetching products:", error);
     res.status(500).json({ error: "Internal Server Error" });
@@ -78,7 +163,7 @@ app.get("/products", async (req, res) => {
 
 app.get("/featured_products", async (req, res) => {
   try {
-    const response = await axios.get(`${JSON_SERVER_URL}/featured_products`);
+    const response = await axios.get(`${JSON_SERVER_URL}/products?limit=3`);
     res.json(response.data);
   } catch (error) {
     console.error("Error fetching featured products:", error);
@@ -86,58 +171,21 @@ app.get("/featured_products", async (req, res) => {
   }
 });
 
-app.post("/login", (req, res) => {
-  const { email, password } = req.body;
-  const users = getUsers();
+app.get("/product/:id", async (req, res) => {
+  const { id } = req.params;
+  const url = `${JSON_SERVER_URL}/products/${id}`;
 
-  const user = users.find((u) => u.email === email && u.password === password);
-
-  if (user) {
-    const accessToken = jwt.sign(
-      { id: user.id, email: user.email },
-      SECRET_KEY,
-      { expiresIn: "1h" }
-    );
-
-    res.json({ user, accessToken });
-  } else {
-    res.status(401).json({ error: "Invalid credentials" });
+  try {
+    const response = await axios.get(url); // Get the product by ID
+    res.json(response.data); // Send back the product data
+  } catch (error) {
+    console.error("Error fetching product:", error);
+    res.status(500).json({ error: "Internal Server Error" });
   }
 });
-
-app.post("/register", (req, res) => {
-  const { email, password, name } = req.body;
-  const users = getUsers();
-
-  if (users.some((u) => u.email === email)) {
-    return res.status(400).json({ error: "User already exists" });
-  }
-
-  const newUser = {
-    id: users.length + 1,
-    email,
-    password,
-    name,
-  };
-
-  users.push(newUser);
-  saveUsers(users);
-
-  const accessToken = jwt.sign(
-    { id: newUser.id, email: newUser.email },
-    SECRET_KEY,
-    { expiresIn: "1h" }
-  );
-
-  res.json({ user: newUser, accessToken });
-});
-
-app.post("/logout", (req, res) => {
-  res.json({ message: "Logged out successfully" });
-});
-
 // ---------------- Start the Express Server ---------------- //
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   console.log(`Express server started on port ${PORT}`);
+  connectDB();
 });
