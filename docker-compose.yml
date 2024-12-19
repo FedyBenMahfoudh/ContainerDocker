@@ -1,0 +1,38 @@
+version: '3.8'
+
+services:
+  frontend:
+    build:
+      context: ./frontend
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+    networks:
+      - app-network
+
+  backend:
+    build:
+      context: ./backend
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./backend/data:/app/data
+    depends_on:
+      - db
+    networks:
+      - app-network
+
+  db:
+    image: jsonserver/json-server
+    command: --watch /data/db.json --port 3001
+    volumes:
+      - ./backend/data:/data
+    networks:
+      - app-network
+    environment:
+      - DB_FILE=/data/db.json
+
+networks:
+  app-network:
+    driver: bridge
